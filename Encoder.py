@@ -33,7 +33,7 @@ class Encoder(nn.Module):
         
     def forward(self, EncoderInput):
         seq_length = EncoderInput.shape[1]
-        EncoderSelfMask = get_self_attention_padding_mask(EncoderInput)
+        EncoderSelfMask = get_self_attention_padding_mask(EncoderInput).to(self.parameters["device"])
         ps_emb = self.PositionEmbedding(torch.arange(seq_length).to(self.parameters["device"]))
         word_emb = self.SrcWordEmbedding(EncoderInput)
         x = ps_emb + word_emb

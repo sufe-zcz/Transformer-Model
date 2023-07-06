@@ -56,8 +56,8 @@ class Decoder(nn.Module):
         WordEmb = self.TgtWordEmbedding(DecoderInput)
         PosEmb = self.PositionEmbedding(torch.arange(seq_length).to(self.parameters["device"]))
         x = WordEmb + PosEmb
-        DecoderSelfPadMask = get_self_attention_padding_mask(DecoderInput)
-        DecoderSelfSeqMask = get_subsequence_mask(DecoderInput)
+        DecoderSelfPadMask = get_self_attention_padding_mask(DecoderInput).to(self.parameters["device"])
+        DecoderSelfSeqMask = get_subsequence_mask(DecoderInput).to(self.parameters["device"])
         DecoderSelfMask = torch.gt(DecoderSelfPadMask + DecoderSelfSeqMask, 0).to(self.parameters["device"])
         
         DecoderEncoderMask = get_self_attention_padding_mask(
