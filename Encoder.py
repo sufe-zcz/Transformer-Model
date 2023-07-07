@@ -2,26 +2,21 @@ import torch
 import torch.nn as nn
 from utils import get_self_attention_padding_mask, generate_position_embedding
 from MutiheadAttention import MutiHeadAttention
-
+from PoswiseFeedForwardNet import PoswiseFeedForwardNet
 
 class EncoderLayer(nn.Module):
     def __init__(self, paramters):
         super().__init__()
         self.paramters = paramters
         self.SelfAttention = MutiHeadAttention(paramters)
-        self.fc = nn.Sequential(
-            nn.Linear(paramters["d_model"], paramters["d_ff"]),
-            nn.ReLU(),
-            nn.Linear(paramters["d_ff"], paramters["d_model"])
-        )
+        self.FeedForward = PoswiseFeedForwardNet(paramters)
         self.LayerNorm = nn.LayerNorm(paramters["d_model"]).to(paramters["device"])
         
     def forward(self, EncoderInput, mask):
         # residual = EncoderInput
         EncoderOutput = self.SelfAttention(EncoderInput, EncoderInput, EncoderInput, mask)
-        residual = EncoderOutput
-        out = self.fc(EncoderOutput)
-        return self.LayerNorm(out + residual)
+        out = self.FeedForward(EncoderOutput)
+        return out
 
 class Encoder(nn.Module):
     def __init__(self, parameters):

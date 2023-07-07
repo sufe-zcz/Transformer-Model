@@ -19,6 +19,32 @@ def get_subsequence_mask(seq):
     mask = np.triu(np.ones(shape=mask_shape), k=1)
     return torch.from_numpy(mask).byte()
 
+# def get_self_attention_padding_mask(seq_q, seq_k):
+#     '''
+#     seq_q: [batch_size, seq_len]
+#     seq_k: [batch_size, seq_len]
+#     seq_len could be src_len or it could be tgt_len
+#     seq_len in seq_q and seq_len in seq_k maybe not equal
+#     '''
+#     batch_size, len_q = seq_q.size()
+#     batch_size, len_k = seq_k.size()
+#     # eq(zero) is PAD token
+#     # [batch_size, 1, len_k], False is masked
+#     pad_attn_mask = seq_k.data.eq(0).unsqueeze(1)
+#     # [batch_size, len_q, len_k]
+#     return pad_attn_mask.expand(batch_size, len_q, len_k)
+
+
+# def get_subsequence_mask(seq):
+#     '''
+#     seq: [batch_size, tgt_len]
+#     '''
+#     attn_shape = [seq.size(0), seq.size(1), seq.size(1)]
+#     # Upper triangular matrix
+#     subsequence_mask = np.triu(np.ones(attn_shape), k=1)
+#     subsequence_mask = torch.from_numpy(subsequence_mask).byte()
+#     return subsequence_mask  # [batch_size, tgt_len, tgt_len]
+
 def generate_position_embedding(max_length, embedding_size, d_model):
     ps = np.array([
         [pos / np.power(10000, 2 * i / d_model) for i in range(embedding_size)] for pos in range(max_length)

@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 from MutiheadAttention import MutiHeadAttention
 from utils import *
+from PoswiseFeedForwardNet import PoswiseFeedForwardNet
 
 class DecoderLayer(nn.Module):
     def __init__(self, parameters):
@@ -10,12 +11,8 @@ class DecoderLayer(nn.Module):
         self.parameters = parameters
         self.SelfAttention = MutiHeadAttention(parameters)
         self.EncoderDecoderAttention = MutiHeadAttention(parameters)
-        self.fc = nn.Sequential(
-            nn.Linear(parameters["d_model"], parameters["d_ff"]),
-            nn.ReLU(),
-            nn.Linear(parameters["d_ff"], parameters["d_model"])
-        )
-        self.LayerNorm = nn.LayerNorm(parameters["d_model"])
+        self.FeedForward = PoswiseFeedForwardNet(parameters)
+        self.LayerNorm = nn.LayerNorm(parameters["d_model"]).to(self.parameters["device"])
         
     def forward(self, 
                 DecoderInput,
@@ -30,9 +27,8 @@ class DecoderLayer(nn.Module):
             V=EncoderOutput,
             mask=DecoderEncoderPadMask
         )
-        residual = DecoderOutput
-        out = self.fc(DecoderOutput)
-        return self.LayerNorm(out + residual)
+        out = self.FeedForward(DecoderOutput)
+        return out
     
 class Decoder(nn.Module):
     def __init__(self, parameters):
@@ -58,12 +54,9 @@ class Decoder(nn.Module):
         x = WordEmb + PosEmb
         DecoderSelfPadMask = get_self_attention_padding_mask(DecoderInput).to(self.parameters["device"])
         DecoderSelfSeqMask = get_subsequence_mask(DecoderInput).to(self.parameters["device"])
-        DecoderSelfMask = torch.gt(DecoderSelfPadMask + DecoderSelfSeqMask, 0).to(self.parameters["device"])
+        DecoderSelfMask = torch.gt((DecoderSelfPadMask + DecoderSelfSeqMask), 0).to(self.parameters["device"])
         
-        DecoderEncoderMask = get_self_attention_padding_mask(
-            seq_source=EncoderInput,
-            seq_target=DecoderInput
-        )
+        DecoderEncoderMask = get_self_attention_padding_mask(EncoderInput, DecoderInput)
         
         for layer in self.layers:
             x = layer(x, EncoderOutput, DecoderSelfMask, DecoderEncoderMask)

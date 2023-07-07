@@ -11,7 +11,7 @@ class MutiHeadAttention(nn.Module):
         self.W_V = nn.Linear(parameters["d_model"], parameters["d_model"], bias=False)
         self.softmax = nn.Softmax(-1)
         self.LayerNorm = nn.LayerNorm(parameters["d_model"]).to(parameters["device"])
-        self.fc = nn.Linear(parameters["d_model"], parameters["d_model"])
+        self.fc = nn.Linear(parameters["d_model"], parameters["d_model"], bias=False)
         
     def forward(self, Q, K, V, mask):
         batch_size, residual = Q.shape[0], Q
