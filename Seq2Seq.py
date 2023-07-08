@@ -12,12 +12,13 @@ import pandas as pd
 from torch.nn.utils.rnn import pad_sequence
 import os
 from transformer import Transformer
+from Translator import Translator
 
-min_freq = 1
-batch_size = 20
+min_freq = 5
+batch_size = 32
 num_samples = 20
 
-data = pd.read_csv("translation_data.csv")[:num_samples]
+data = pd.read_csv("translation_data.csv")
 data["Chinese"] = data["Chinese"].apply(lambda x:x[:-1])
 data["English"] = data["English"].apply(lambda x:x[:-1])
 data["Englist_lower"] = data["English"].apply(lambda x:x.lower())
@@ -87,7 +88,7 @@ def my_collate(batch):
 dataset = MyDataset(data)
 dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False, collate_fn=my_collate)
 
-device = "mps"
+device = "cuda"
 parameter = {
     "d_model" : 512,
     "d_ff" : 512 * 4,
@@ -102,20 +103,20 @@ parameter = {
     "output_dim": len(target_vocab)
 }
 
-train = True
+train = False
 save = False
 
 model = Transformer(parameter).to(device)
-# save_path = "./save/model.pth"
-# if os.path.exists(save_path):
-#     print(f"Checkpoint exists. Loading from {save_path}")
-#     model.load_state_dict(torch.load(save_path))
+save_path = "./save/model.pth"
+if os.path.exists(save_path):
+    print(f"Checkpoint exists. Loading from {save_path}")
+    model.load_state_dict(torch.load(save_path, map_location=device))
 
 loss_function = nn.CrossEntropyLoss(ignore_index=0)
 optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
 print(f"Training on {device}")
 if train:
-    for epoch in range(100):
+    for epoch in range(20):
         l = 0.0
         for idx, (encoder_input, decoder_input, decoder_output) in enumerate(dataloader):
             encoder_input, decoder_input, decoder_output = encoder_input.to(device), decoder_input.to(device), decoder_output.to(device)
@@ -133,36 +134,13 @@ if train:
             torch.save(model.state_dict(), f'save/model_EPOCH_{epoch}.pth')
         print(f"EPOCH : {epoch}\tLOSS : {l:.2f}")
 
-def greedy_decoder(model, enc_input, start_symbol):
-    enc_outputs = model.Encoder(enc_input)
-    dec_input = torch.zeros(1, 0).type_as(enc_input.data)
-    terminal = False
-    next_symbol = start_symbol
-    while not terminal:
-        dec_input = torch.cat([dec_input.detach(), torch.tensor(
-            [[next_symbol]], dtype=enc_input.dtype).to(device)], -1)
-        # EncoderInput, EncoderOutput, DecoderInput
-        dec_outputs = model.Decoder(enc_input, enc_outputs, dec_input)
-        projected = model.fc(dec_outputs)
-        prob = projected.squeeze(0).max(dim=-1, keepdim=False)[1]
-        next_word = prob.data[-1]
-        next_symbol = next_word
-        if next_symbol == target_vocab["<END>"]:
-            terminal = True
-        # print(next_word)
-    return dec_input
+# if save:
+#     torch.save(model.state_dict(), f'save/model.pth')
 
 
+tranlator = Translator(model, source_vocab, target_vocab, tokenizer_english, device)
+text = "you are my son"
 
-enc_inputs, _, _ = next(iter(dataloader))
-enc_inputs = enc_inputs.to(device)
-for i in range(len(enc_inputs)):
-    greedy_dec_input = greedy_decoder(
-        model, enc_inputs[i].view(1, -1), start_symbol=target_vocab["<BEGIN>"])
-    predict = model(enc_inputs[i].view(1, -1), greedy_dec_input)
-    predict = predict.data.max(-1, keepdim=True)[1]
-    if predict.numel() != 0:
-        print([source_vocab.get_itos()[item.item()] for item in enc_inputs[i]], '->', [target_vocab.get_itos()[n.item()] for n in predict.squeeze()])
+tranlator.render(text)
 
-if save:
-    torch.save(model.state_dict(), f'save/model.pth')
+
