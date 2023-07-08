@@ -4,7 +4,7 @@ import pandas as pd
 import os
 from transformer import Transformer
 from torchtext.transforms import VocabTransform
-
+from torch.distributions import Categorical
 
 class Translator(object):
     def __init__(self, model, src_vocab, tgt_vocab, tokenizer, device):
@@ -35,8 +35,14 @@ class Translator(object):
             # EncoderInput, EncoderOutput, DecoderInput
             dec_outputs = self.model.Decoder(enc_input, enc_outputs, dec_input)
             projected = self.model.fc(dec_outputs)
-            prob = projected.squeeze(0).max(dim=-1, keepdim=False)[1]
-            next_word = prob.data[-1]
+            # prob = projected.squeeze(0).max(dim=-1, keepdim=False)[1]
+            
+            prob = nn.Softmax(dim=-1)(projected.squeeze(0)[-1, :])
+            category = Categorical(prob)
+            
+            # next_word = prob.data[-1]
+            # next_symbol = next_word
+            next_word = category.sample()
             next_symbol = next_word
             if next_symbol == self.tgt_vocab["<END>"]:
                 terminal = True

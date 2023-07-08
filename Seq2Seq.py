@@ -139,7 +139,7 @@ if train:
 
 
 tranlator = Translator(model, source_vocab, target_vocab, tokenizer_english, device)
-text = "you are my son"
+text = "good morning and we have to run"
 
 tranlator.render(text)
 
