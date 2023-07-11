@@ -19,7 +19,7 @@ class Translator(object):
     def load_model(self, path):
         if os.path.exists(path):
             print(f"Loading model from {path}")
-            self.model.load_state_dict(torch.load(save_path, map_location=self.device))
+            self.model.load_state_dict(torch.load(path, map_location=self.device))
         else:
             print("Path does not exist !!")
 
