@@ -25,6 +25,8 @@ class Encoder(nn.Module):
         self.SrcWordEmbedding = nn.Embedding(parameters["src_vocab_size"], parameters["d_model"])
         self.PositionEmbedding = nn.Embedding.from_pretrained(generate_position_embedding(parameters["max_length"], parameters["d_model"], parameters["d_model"]), freeze=True)
         self.layers = nn.ModuleList([EncoderLayer(parameters) for _ in range(parameters["n_layers"])])
+        self.dropout = nn.Dropout(p=0.1)
+        
         
     def forward(self, EncoderInput):
         seq_length = EncoderInput.shape[1]
@@ -32,6 +34,7 @@ class Encoder(nn.Module):
         ps_emb = self.PositionEmbedding(torch.arange(seq_length).to(self.parameters["device"]))
         word_emb = self.SrcWordEmbedding(EncoderInput)
         x = ps_emb + word_emb
+        x = self.dropout(x)
         for layer in self.layers:
             x = layer(x, EncoderSelfMask)
         return x

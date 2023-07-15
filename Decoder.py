@@ -45,6 +45,7 @@ class Decoder(nn.Module):
             ),
             freeze=True
         )
+        self.dropout = nn.Dropout(p=0.1)
         self.layers = nn.ModuleList([DecoderLayer(parameters) for _ in range(parameters["n_layers"])])
     
     def forward(self, EncoderInput, EncoderOutput, DecoderInput):
@@ -52,6 +53,7 @@ class Decoder(nn.Module):
         WordEmb = self.TgtWordEmbedding(DecoderInput)
         PosEmb = self.PositionEmbedding(torch.arange(seq_length).to(self.parameters["device"]))
         x = WordEmb + PosEmb
+        x = self.dropout(x)
         DecoderSelfPadMask = get_self_attention_padding_mask(DecoderInput).to(self.parameters["device"])
         DecoderSelfSeqMask = get_subsequence_mask(DecoderInput).to(self.parameters["device"])
         DecoderSelfMask = torch.gt((DecoderSelfPadMask + DecoderSelfSeqMask), 0).to(self.parameters["device"])
